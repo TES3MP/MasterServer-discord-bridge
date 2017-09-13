@@ -30,7 +30,7 @@ async def ban(ctx, address : str, reason : str):
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
         rest.ban(address, reason)
-        status_code = rest.send()
+        rest.send()
         await bot.edit_message(tmp, '"{}" was banned.'.format(address))
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
@@ -45,8 +45,21 @@ async def unban(ctx, address : str):
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
         rest.unban(address)
-        status_code = rest.send()
+        rest.send()
         await bot.edit_message(tmp, '"{}" was unbanned.'.format(address))
+    except KeyError:
+        await bot.edit_message(tmp, 'You do not have permission to do this.')
+    except requests.exceptions.RequestException:
+        await bot.edit_message(tmp, 'Master server is down.')
+
+async def savebans(ctx):
+    tmp = await bot.say('Saving...')
+    try:
+        login = config.accounts[ctx.message.author.id]
+        rest = RestClient(*login)
+        rest.savebans()
+        rest.send()
+        await bot.edit_message(tmp, 'Banlist are saved')
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:

@@ -20,6 +20,9 @@ class RestClient:
     def banlist(self):
         self.content.append({'command': 'banlist'})
 
+    def savebans(self):
+        self.content.append({'command': 'savebans'})
+
     def send(self):
         r = requests.post(config.serverAddr, cert=config.cert, data=json.dumps({'content': self.content}), verify=config.rootCA)
         print(json.dumps({'content': self.content}))
