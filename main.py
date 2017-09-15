@@ -1,3 +1,4 @@
+import discord
 import requests
 from discord.ext import commands
 from restClient import RestClient
@@ -35,6 +36,17 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+
+
+@bot.event
+async def on_command_error(exception, ctx):
+    channel = discord.Object(id=config.channel)
+    if ctx.command is None:
+        await bot.send_message(channel, 'Exception "{}": {}'
+                               .format(type(exception).__name__, exception))
+    else:
+        await bot.send_message(channel, 'Exception "{}" in command "{}": {}'
+                               .format(type(exception).__name__, ctx.command, exception))
 
 
 @bot.event
