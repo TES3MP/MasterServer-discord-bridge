@@ -17,7 +17,10 @@ async def update_list(name, passw):
     rest = RestClient(name, passw)
     rest.banlist()
     result = rest.send()
-    data = json.loads(result['response'])
+    if result['code'] == 200:
+        data = json.loads(result['response'])
+    else:
+        raise ValueError('You do not have permission to do this.')
 
     for entity in data:
         timestamp = datetime.fromtimestamp(entity['date'])
@@ -48,9 +51,14 @@ async def ban(ctx, address: str, reason: str):
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
         rest.ban(address, reason)
-        rest.send()
-        table_gen.clean()
-        await bot.edit_message(tmp, '"{}" was banned.'.format(address))
+        code = rest.send()['code']
+        if code == 200:
+            table_gen.clean()
+            await bot.edit_message(tmp, '"{}" was banned.'.format(address))
+        elif code == 403:
+            await bot.edit_message(tmp, 'You do not have permission to do this.')
+        elif code == 400:
+            await bot.edit_message(tmp, 'Server not found')
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
@@ -65,9 +73,15 @@ async def unban(ctx, address: str):
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
         rest.unban(address)
-        rest.send()
-        table_gen.clean()
-        await bot.edit_message(tmp, '"{}" was unbanned.'.format(address))
+        code = rest.send()['code']
+        if code == 200:
+            table_gen.clean()
+            await bot.edit_message(tmp, '"{}" was unbanned.'.format(address))
+        elif code == 403:
+            await bot.edit_message(tmp, 'You do not have permission to do this.')
+        elif code == 400:
+            await bot.edit_message(tmp, 'Server not found')
+
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
@@ -81,8 +95,11 @@ async def savebans(ctx):
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
         rest.savebans()
-        rest.send()
-        await bot.edit_message(tmp, 'Banlist are saved')
+        code = rest.send()['code']
+        if code == 200:
+            await bot.edit_message(tmp, 'Banlist are saved')
+        elif code == 403:
+            await bot.edit_message(tmp, 'You do not have permission to do this.')
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
@@ -110,6 +127,8 @@ async def banlist(ctx):
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
         await bot.edit_message(tmp, 'Master server is down.')
+    except ValueError as err:
+        await bot.edit_message(tmp, err)
 
 
 @bot.command()
