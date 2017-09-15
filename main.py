@@ -6,6 +6,7 @@ import config
 import json
 from tableGen import TableGen, Column
 from datetime import datetime
+from utils import is_valid_address
 
 description = '''Masterserver admin bridge'''
 bot = commands.Bot(command_prefix='?', description=description)
@@ -55,10 +56,12 @@ async def on_message(message):  # Hack: check that channel is correct
         await bot.process_commands(message)
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, description='Ban server.')
 async def ban(ctx, address: str, reason: str):
     tmp = await bot.say('Banning...')
-
+    if not is_valid_address(address):
+        await bot.edit_message(tmp, 'address "{}" is not correct'.format(address))
+        return
     try:
         login = config.accounts[ctx.message.author.id]
         rest = RestClient(*login)
@@ -77,7 +80,7 @@ async def ban(ctx, address: str, reason: str):
         await bot.edit_message(tmp, 'Master server is down.')
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, description='Unban server.')
 async def unban(ctx, address: str):
     tmp = await bot.say('Unbanning...')
 
