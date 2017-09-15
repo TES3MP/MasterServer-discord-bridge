@@ -1,14 +1,30 @@
-import discord
 import requests
 from discord.ext import commands
-import random
-
-
-import config
 from restClient import RestClient
+import config
+import json
+from tableGen import TableGen, Column
+from datetime import datetime
 
 description = '''Masterserver admin bridge'''
 bot = commands.Bot(command_prefix='?', description=description)
+
+table_gen = TableGen([Column('Server addr', length=15), Column('Date', length=8), Column('Time', length=8),
+                      Column('Reason', length=31, centred_content=False), Column('By', length=20)])
+
+
+async def update_list(name, passw):
+    rest = RestClient(name, passw)
+    rest.banlist()
+    result = rest.send()
+    data = json.loads(result['response'])
+
+    for entity in data:
+        timestamp = datetime.fromtimestamp(entity['date'])
+        table_gen.add(entity['address'], str(timestamp.strftime("%d-%m-%y")), str(timestamp.time()), entity['reason'],
+                      entity['by'])
+    return
+
 
 @bot.event
 async def on_ready():
@@ -17,13 +33,15 @@ async def on_ready():
     print(bot.user.id)
     print('------')
 
+
 @bot.event
-async def on_message(message): # Hack: check that channel is correct
+async def on_message(message):  # Hack: check that channel is correct
     if message.channel.id == config.channel:
         await bot.process_commands(message)
 
+
 @bot.command(pass_context=True)
-async def ban(ctx, address : str, reason : str):
+async def ban(ctx, address: str, reason: str):
     tmp = await bot.say('Banning...')
 
     try:
@@ -31,14 +49,16 @@ async def ban(ctx, address : str, reason : str):
         rest = RestClient(*login)
         rest.ban(address, reason)
         rest.send()
+        table_gen.clean()
         await bot.edit_message(tmp, '"{}" was banned.'.format(address))
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
         await bot.edit_message(tmp, 'Master server is down.')
 
+
 @bot.command(pass_context=True)
-async def unban(ctx, address : str):
+async def unban(ctx, address: str):
     tmp = await bot.say('Unbanning...')
 
     try:
@@ -46,12 +66,15 @@ async def unban(ctx, address : str):
         rest = RestClient(*login)
         rest.unban(address)
         rest.send()
+        table_gen.clean()
         await bot.edit_message(tmp, '"{}" was unbanned.'.format(address))
     except KeyError:
         await bot.edit_message(tmp, 'You do not have permission to do this.')
     except requests.exceptions.RequestException:
         await bot.edit_message(tmp, 'Master server is down.')
 
+
+@bot.command(pass_context=True)
 async def savebans(ctx):
     tmp = await bot.say('Saving...')
     try:
@@ -65,9 +88,29 @@ async def savebans(ctx):
     except requests.exceptions.RequestException:
         await bot.edit_message(tmp, 'Master server is down.')
 
-@bot.command()
-async def banlist():
-    await bot.say('todo: banlist()')
+
+@bot.command(pass_context=True)
+async def banlist(ctx):
+    tmp = await bot.say('Loading list...')
+    try:
+        if table_gen.empty():
+            login = config.accounts[ctx.message.author.id]
+            await update_list(*login)
+        for chunk in table_gen.chunks:
+            msg = '```'
+            for row in chunk:
+                msg += row
+            if len(msg) <= 2000:
+                if tmp is not None:
+                    await bot.edit_message(tmp, msg + '```')
+                    tmp = None
+                else:
+                    await bot.say(msg + '```')
+    except KeyError:
+        await bot.edit_message(tmp, 'You do not have permission to do this.')
+    except requests.exceptions.RequestException:
+        await bot.edit_message(tmp, 'Master server is down.')
+
 
 @bot.command()
 async def ping():
