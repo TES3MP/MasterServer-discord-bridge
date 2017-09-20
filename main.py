@@ -212,4 +212,21 @@ async def checkban(ctx, address: str):
         await bot.say(err)
 
 
+@bot.command(pass_context=True, description='Removes the "number" of messages. Maximum 100, default is 100.')
+async def clearchat(ctx, number=None):
+    mgs = []
+    if number is None:
+        number = 100
+    else:
+        number = int(number)
+
+    if number > 100:
+        number = 100
+
+    async for msg in bot.logs_from(ctx.message.channel, limit=number):
+        mgs.append(msg)
+    await bot.delete_messages(mgs)
+    await bot.say('Chat was cleared. Deleted {} messages.'.format(number))
+
+
 bot.run(config.token)
