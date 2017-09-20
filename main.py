@@ -14,17 +14,28 @@ bot = commands.Bot(command_prefix='?', description=description)
 table_gen = TableGen([Column('Server addr', length=15), Column('Date', length=8), Column('Time', length=8),
                       Column('Reason', length=31, centred_content=False), Column('By', length=20)])
 
+bans_cache_updated = True
+bans_cache = []
 
-async def update_list(name, passw):
+
+def loadBans(name, passw):
+    global bans_cache_updated
+    global bans_cache
     rest = RestClient(name, passw)
     rest.banlist()
     result = rest.send()
     if result['code'] == 200:
-        data = json.loads(result['response'])
+        bans_cache = json.loads(result['response'])
     else:
         raise ValueError('You do not have permission to do this.')
 
-    for entity in data:
+    bans_cache_updated = False
+
+
+async def update_list():
+    print('we are here')
+    table_gen.clean()
+    for entity in bans_cache:
         timestamp = datetime.fromtimestamp(entity['date'])
         table_gen.add(entity['address'], str(timestamp.strftime("%d-%m-%y")), str(timestamp.time()), entity['reason'],
                       entity['by'])
@@ -59,6 +70,7 @@ async def on_message(message):  # Hack: check that channel is correct
 
 @bot.command(pass_context=True, description='Ban server.')
 async def ban(ctx, address: str, reason: str):
+    global bans_cache_updated
     tmp = await bot.say('Banning...')
     if not is_valid_address(address):
         await bot.edit_message(tmp, 'address "{}" is not correct'.format(address))
@@ -69,7 +81,7 @@ async def ban(ctx, address: str, reason: str):
         rest.ban(address, reason)
         code = rest.send()['code']
         if code == 200:
-            table_gen.clean()
+            bans_cache_updated = True
             await bot.edit_message(tmp, '"{}" was banned.'.format(address))
         elif code == 403:
             await bot.edit_message(tmp, 'You do not have permission to do this.')
@@ -83,6 +95,7 @@ async def ban(ctx, address: str, reason: str):
 
 @bot.command(pass_context=True, description='Unban server.')
 async def unban(ctx, address: str):
+    global bans_cache_updated
     tmp = await bot.say('Unbanning...')
 
     try:
@@ -91,7 +104,7 @@ async def unban(ctx, address: str):
         rest.unban(address)
         code = rest.send()['code']
         if code == 200:
-            table_gen.clean()
+            bans_cache_updated = True
             await bot.edit_message(tmp, '"{}" was unbanned.'.format(address))
         elif code == 403:
             await bot.edit_message(tmp, 'You do not have permission to do this.')
@@ -126,9 +139,9 @@ async def savebans(ctx):
 async def banlist(ctx):
     tmp = await bot.say('Loading list...')
     try:
-        if table_gen.empty():
-            login = config.accounts[ctx.message.author.id]
-            await update_list(*login)
+        if bans_cache_updated:
+            loadBans(*config.accounts[ctx.message.author.id])
+            await update_list()
         for chunk in table_gen.chunks:
             msg = '```'
             for row in chunk:
