@@ -174,4 +174,42 @@ async def ping():
     await bot.say('pong!')
 
 
+@bot.command(pass_context=True)
+async def checkban(ctx, address: str):
+    try:
+        if bans_cache_updated:
+            loadBans(*config.accounts[ctx.message.author.id])
+
+        msg = ''
+        for entity in bans_cache:
+            if entity['address'] == address:
+                msg_tmp = '```'
+                timestamp = datetime.fromtimestamp(entity['date'])
+                msg_tmp += 'Address: ' + entity['address'] + '\n'
+                msg_tmp += 'Date: ' + str(timestamp.strftime('%d-%m-%Y')) + ' ' + str(timestamp.time()) + '\n'
+                msg_tmp += 'By: ' + entity['by'] + '\n'
+                msg_tmp += 'Reason:' + entity['reason'] + '\n'
+
+                if len(msg_tmp) > 1997:
+                    msg_tmp = msg_tmp[0:1997]
+
+                msg_tmp += '```'
+
+                if len(msg) + len(msg_tmp) > 1997:
+                    await bot.say(msg)
+                    msg = ''
+
+                msg += msg_tmp
+
+        await bot.say(msg)
+
+
+    except KeyError:
+        await bot.say('You do not have permission to do this.')
+    except requests.exceptions.RequestException:
+        await bot.say('Master server is down.')
+    except ValueError as err:
+        await bot.say(err)
+
+
 bot.run(config.token)
