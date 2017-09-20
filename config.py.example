@@ -3,6 +3,7 @@ channel = 'CHANNEL ID'
 cert = None # or cert = ('cert/master.pem', 'cert/master.key')
 rootCA = None # or 'cert/rootCA.crt'
 serverAddr = 'https://master.tes3mp.com:4040/api/admin'
+game_status = 'Testing mode'
 
 accounts = {
     '178539252563443712': ['koncord', 'mySuperPassw']
