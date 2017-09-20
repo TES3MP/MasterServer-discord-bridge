@@ -9,7 +9,16 @@ from datetime import datetime
 from utils import is_valid_address
 
 description = '''Masterserver admin bridge'''
-bot = commands.Bot(command_prefix='?', description=description)
+
+cmd_mode = config.prefix
+if config.mentioned and config.prefix is None:
+    cmd_mode = commands.when_mentioned()
+elif config.mentioned and config.prefix is not None:
+    cmd_mode = commands.when_mentioned_or(cmd_mode)
+else:
+    cmd_mode = '?'
+
+bot = commands.Bot(command_prefix=cmd_mode, description=description)
 
 table_gen = TableGen([Column('Server addr', length=15), Column('Date', length=8), Column('Time', length=8),
                       Column('Reason', length=31, centred_content=False), Column('By', length=20)])

@@ -3,6 +3,8 @@ channel = 'CHANNEL ID'
 cert = None # or cert = ('cert/master.pem', 'cert/master.key')
 rootCA = None # or 'cert/rootCA.crt'
 serverAddr = 'https://master.tes3mp.com:4040/api/admin'
+mentioned = False
+prefix = '?' # or None
 game_status = 'Testing mode'
 
 accounts = {
